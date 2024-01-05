@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% block css %}
+    <style>
+        #description {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            word-break: break-all;
+            display: -webkit-box;
+            max-width: 350px;
+            -webkit-box-orient: vertical;
+            line-height: 2.2em;
+            max-height: 4.4em;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div role="alert" id="alert">
+
+    </div>
+    {#    <meta http-equiv="refresh" content="60">#}
+    <div class="container-fluid pt-4 px-4">
+        <div class="row g-4">
+            <div class="col-12">
+                <div class="bg-light rounded h-100 p-4">
+                    <h6 class="nav-item mb-4">评论管理</h6>
+                    <div class="pull-right">
+                        <input type="text" list="query_name" name="query_name" placeholder="视频ID"
+                               value="{{ search_name }}">
+                        <button type="button" class="btn btn-primary" onclick="query_goods();" id="query_goods_btn">
+                            <i class="fas fa-search me-2"></i>查询
+                        </button>
+                        <button type="reset" class="btn btn-secondary" onclick="reset_query()">
+                            <i class="fas fa-undo-alt me-2"></i>重置
+                        </button>
+                    </div>
+                    <div class="container-fluid pt-4 px-4" style="margin-top: 5%;">
+                        <div class="row g-4">
+                            {% if object_list %}
+                                {% for object in object_list %}
+                                    <div class="col-sm-12 col-md-6 col-xl-4">
+                                        <div class="h-30 bg-light rounded p-4">
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <span id="cen" style="color: #37a;">{{ object.name }}</span>
+                                                <a href="/comment/look/{{ object.vid }}/?page={{ page }}&search-input={{ search_name }}"><i
+                                                        class="fa fa-angle-double-right"></i></a>
+                                            </div>
+                                            <div style="font-size: 10px;">
+                                                {% if object.tag_names %}
+                                                    <p id="cen">
+                                                        <i class="fas fa-tags me-1"></i><span>{{ object.tag_names }}</span>
+                                                    </p>
+                                                {% endif %}
+                                                <p>
+                                                    <i class="fas fa-thumbs-up me-1"></i><span>{{ object.favorite|default:0 }}</span>
+                                                    <i class="fas fa-share-alt me-1"></i><span>{{ object.video_share|default:0 }}</span>
+                                                    <i class="fas fa-heart me-1"></i><span>{{ object.video_like|default:0 }}</span>
+                                                </p>
+                                                {% if object.description %}
+                                                    <p><span id="description">简介：{{ object.description }}</span></p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <p style="text-align: center;">暂无数据</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% if is_paginated %}
+                <ul class="pagination">
+                    {% if first %}
+                        {% if search_name %}
+                            <li class="page"><a href="?search-input={{ search_name }}&&page=1">1</a>
+                            </li>
+                        {% else %}
+                            <li class="page"><a href="?page=1">1</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                    {% if left %}
+                        {% if left_has_more %}
+                            <li class="page"><a href="javascript:void(0)">...</a></li>
+                        {% endif %}
+                        {% for i in left %}
+                            {% if search_name %}
+                                <li class="page"><a
+                                        href="?search-input={{ search_name }}&&page={{ i }}">{{ i }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page"><a href="?page={{ i }}">{{ i }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    <li class="page"><a href="javascript:void(0)"
+                                        class="active" id="page"> {{ page }}</a></li>
+                    {% if right %}
+                        {% for i in right %}
+                            {% if search_name %}
+                                <li class="page"><a
+                                        href="?search-input={{ search_name }}&&page={{ i }}">{{ i }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page"><a href="?page={{ i }}">{{ i }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        {% if right_has_more %}
+                            <li class="page"><a href="javascript:void(0)">...</a></li>
+                        {% endif %}
+                    {% endif %}
+                    {% if last %}
+                        {% if search_name %}
+                            <li class="page"><a
+                                    href="?search-input={{ search_name }}&&page={{ total_pages }}">{{ total_pages }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page"><a
+                                    href="?page={{ total_pages }}">{{ total_pages }}</a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script>
+        let query_name_obj = $("input[name='query_name']");
+
+        query_name_obj.bind('keyup', function (event) {
+            if (event.keyCode === 13) {
+                //回车执行查询
+                $('#query_goods_btn').click();
+            }
+        });
+
+        function reset_query() {
+            query_name_obj.val("");
+            query_goods();
+        }
+
+        function query_goods() {
+            let search_name = query_name_obj.val();
+            let page = "{{ page }}";
+            let ale = $("#alert");
+            ale.html("查询成功.").addClass("alert-success").show().delay(1500).fadeOut();
+            setTimeout(function () {
+                top.location.href = `{% url 'comment' %}?page=1&search-input=${search_name}`
+            }, 1500);
+        }
+
+        function comment_del(comment_id) {
+            if (window.confirm("请确认删除.")) {
+                let ale = $("#alert");
+                // 删除跳转页面
+                let page = "{{ page }}";
+                $.ajax({
+                    type: "post",
+                    url: `/comment/del/${comment_id}/?page=${page}`,
+                    async: false,
+                    success: function (result) {
+                        let code = result.code;
+                        let message = result.message;
+                        let data = result.data;
+                        if (code === 200) {
+                            ale.html("删除成功.").addClass("alert-success").show().delay(1500).fadeOut();
+                            setTimeout(function () {
+                                top.location.href = `{% url 'comment' %}?page=${data.page}`
+                            }, 1500);
+                        } else {
+                            ale.html(message).addClass("alert-warning").show().delay(1500).fadeOut();
+                        }
+                    }, error: function () {
+                        ale.html("出现未知异常，请联系Bruce.").addClass('alert-danger').show().delay(1500).fadeOut();
+                    }
+                })
+            } else {
+                return false;//取消
+            }
+        }
+    </script>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body %}
+    <h6 class="nav-item" style="display: none;">首页</h6>
+    <div role="alert" id="alert">
+
+    </div>
+    <!-- Widgets Start -->
+    <div class="container-fluid pt-4 px-4">
+        <div class="row g-4">
+            <div class="col-sm-12 col-md-6 col-xl-4">
+                <div class="h-30 bg-light rounded p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="mb-1"><i class="fas fa-comment-dots fa-2x text-primary me-2"></i>评论数</h6>
+                        <a href="javascript:void(0)" id="comment"></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-xl-4">
+                <div class="h-30 bg-light rounded p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="mb-0"><i class="fas fa-user-alt fa-2x text-primary me-2"></i>用户数</h6>
+                        <a href="javascript:void(0)" id="user"></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-md-6 col-xl-4">
+                <div class="h-30 bg-light rounded p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="mb-0"><i class="fas fa-photo-video fa-2x text-primary me-2"></i>视频数</h6>
+                        <a href="javascript:void(0)" id="video"></a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-xl-6">
+                <div class="bg-light rounded h-100 p-4">
+                    <h6 class="mb-4">用户预警</h6>
+                    <div id="user_warning">
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 col-xl-6">
+                <div class="bg-light rounded h-100 p-4">
+                    <h6 class="mb-4">视频预警</h6>
+                    <div id="video_warning">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block js %}
+    <script src="{% static 'lib/chart/chart.min.js' %}"></script>
+    <script>
+        function total() {
+            let ale = $("#alert");
+            $.ajax({
+                type: "post",
+                url: "{% url 'total' %}",
+                async: false,
+                success: function (result) {
+                    console.log(result);
+                    let code = result.code;
+                    let message = result.message;
+                    let data = result.data;
+                    if (code === 200) {
+                        let comment_number = data.comment_number || 0;
+                        let user_number = data.user_number || 0;
+                        let video_number = data.video_number || 0;
+                        $("#comment").text(comment_number);
+                        $("#user").text(user_number);
+                        $("#video").text(video_number);
+                    } else {
+                        ale.html(message).addClass("alert-warning").show().delay(1500).fadeOut();
+                    }
+                }, error: function () {
+                    ale.html("出现未知异常，请联系Bruce.").addClass('alert-danger').show().delay(1500).fadeOut();
+                }
+            })
+        }
+
+        function warning_user() {
+            let ale = $("#alert");
+            let user_warning = $("#user_warning");
+            user_warning.find("div").remove();
+            $.ajax({
+                type: "post",
+                url: "{% url 'warning_user' %}",
+                async: false,
+                success: function (result) {
+                    console.log(result);
+                    let code = result.code;
+                    let message = result.message;
+                    let data = result.data;
+                    if (code === 200) {
+                        let content = "";
+                        for (let i = 0; i < data.length; i++) {
+                            content += `<div class="d-flex align-items-center border-bottom py-3">
+                                <div class="w-100 ms-3">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-0">${data[i].name}-${data[i].uid}</h6>
+                                        <small>${data[i].label_number}</small>
+                                    </div>
+                                    <span>发布负面评论数</span>
+                                </div>
+                            </div>`
+                        }
+                        user_warning.append(content)
+                    } else {
+                        ale.html(message).addClass("alert-warning").show().delay(1500).fadeOut();
+                    }
+                }, error: function () {
+                    ale.html("出现未知异常，请联系Bruce.").addClass('alert-danger').show().delay(1500).fadeOut();
+                }
+            })
+        }
+
+        function warning_video() {
+            let ale = $("#alert");
+            let video_warning = $("#video_warning");
+            video_warning.find("div").remove();
+            $.ajax({
+                type: "post",
+                url: "{% url 'warning_video' %}",
+                async: false,
+                success: function (result) {
+                    console.log(result);
+                    let code = result.code;
+                    let message = result.message;
+                    let data = result.data;
+                    if (code === 200) {
+                        let content = "";
+                        for (let i = 0; i < data.length; i++) {
+                            content += `<div class="d-flex align-items-center border-bottom py-3">
+                                <div class="w-100 ms-3">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-0">${data[i].name}-${data[i].vid}</h6>
+                                        <small>${data[i].label_number} %</small>
+                                    </div>
+                                    <span>负面评论占比</span>
+                                </div>
+                            </div>`
+                        }
+                        video_warning.append(content)
+                    } else {
+                        ale.html(message).addClass("alert-warning").show().delay(1500).fadeOut();
+                    }
+                }, error: function () {
+                    ale.html("出现未知异常，请联系Bruce.").addClass('alert-danger').show().delay(1500).fadeOut();
+                }
+            })
+        }
+
+        total();
+        warning_user();
+        warning_video();
+    </script>
+{% endblock %}

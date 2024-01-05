@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% block css %}
+    <style>
+        #video {
+            margin-left: 25%;
+            float: none;
+            width: auto;
+            display: block;
+            zoom: 1;
+            position: relative;
+        }
+
+        #description {
+            color: #007722;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 16px;
+        }
+
+        #description-detail {
+            line-height: 30px;
+            text-indent: 24px;
+        }
+
+        .comment {
+            position: relative;
+            margin: 0;
+            padding: 20px 0 25px;
+            overflow: initial;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #494949;
+            word-wrap: break-word;
+        }
+
+        #title {
+            max-width: 60%;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div role="alert" id="alert">
+
+    </div>
+    {#    <meta http-equiv="refresh" content="60">#}
+    <div class="container-fluid pt-4 px-4">
+        <div class="row g-4">
+            <div class="col-12">
+                <div class="bg-light rounded h-100 p-4">
+                    <h6 class="nav-item mb-4">评论管理</h6>
+                    <div id="video">
+                        <div id="title">
+                            <span>视频名称：</span><span>{{ video.title }}</span>
+                        </div>
+                        <div style="font-size: 12px;max-width: 50%;">
+                            {% if video.tag_names %}
+                                <p><span><i class="fas fa-tags me-1"></i>视频标签：</span>{{ video.tag_names }}</p>
+                            {% endif %}
+                            {% if video.favorite %}
+                                <p><span><i class="fas fa-thumbs-up me-1"></i>点赞数：</span>{{ video.favorite }}</p>
+                            {% endif %}
+                            {% if video.video_share %}
+                                <p><span><i class="fas fa-share-alt me-1"></i>分享数：</span>{{ video.video_share }}</p>
+                            {% endif %}
+                            {% if video.video_like %}
+                                <p><span><i class="fas fa-heart me-1"></i>喜爱数：</span>{{ video.video_like }}</p>
+                            {% endif %}
+                            {% if video.description %}
+                                <div>
+                                    <span id="description">{{ video.title }} 的剧情简介· · · · · ·</span>
+                                    <p id="description-detail">{{ video.description }}</p>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <span id="description">{{ video.title }} 的短评· · · · · ·</span>
+                                <a style="font-size: 14px;" href="javascript:void(0)">( 全部
+                                    <span id="com-number">{{ number }}</span> 条 )</a>
+                                <div class="comment">
+                                    {% for foo in obj %}
+                                        <span class="comment-info">
+                                            <a href="javascript:void(0);"
+                                               class="">{{ foo.user.name }}</a>
+                                            {% if foo.label == 0 %}
+                                                <span style="color: #888888;">
+                                                    <i class="fas fa-star"></i>
+                                                </span>
+                                            {% else %}
+                                                <span style="color: #FFDD55">
+                                                    {% for foo in foo.label %}
+                                                        <i class="fas fa-star"></i>
+                                                    {% endfor %}
+                                                </span>
+                                            {% endif %}
+                                            <span class="comment-time " title="2023-03-21 05:41:31">
+                                                {{ foo.dt }}
+                                            </span>
+                                        <a onclick="return comment_del('{{ foo.id }}');" style="margin-left: 5px;color: red;">
+                                            <i class="fa fa-times me-2" aria-hidden="true"></i>
+                                        </a>
+                                        </span>
+                                        <p class="comment-content" style="text-indent: 24px;">
+                                            <span class="short">{{ foo.barrage }}</span>
+                                        </p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <a class="btn btn-lg btn-primary btn-lg-square back-to-back"
+               href="{% url 'comment' %}?page={{ page }}&search-input={{ search_name }}">
+                <i class="fas fa-reply" aria-hidden="true"></i>
+            </a>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script>
+        function comment_load() {
+            let ale = $("#alert");
+            // 删除跳转页面
+            let com_obj = $(".comment");
+            let number_obj = $("#com-number");
+            let number = number_obj.text();
+            $.ajax({
+                type: "post",
+                url: `/comment/load/{{ video.vid }}/${number}/`,
+                async: false,
+                success: function (result) {
+                    let code = result.code;
+                    let message = result.message;
+                    let data = result.data;
+                    console.log(result)
+                    if (code === 200) {
+                        let content = ``;
+                        if (data.com) {
+                            for (let i = 0; i < data.com.length; i++) {
+                                content += `<span class="comment-info"><a href="javascript:void(0);" class="">${data.com[i].username}</a>`;
+                                if (data.com[i].label === 0) {
+                                    content += `<span style="color: #888888"><i class="fas fa-star"></i>`
+                                } else {
+                                    content += `<span style="color: #FFDD55">`
+                                    for (let j = 0; j < data.com[i].label; j++) {
+                                        content += `<i class="fas fa-star"></i>`
+                                    }
+                                }
+                                content += `</span><span class="comment-time">${data.com[i].dt}</span></span><p class="comment-content" style="text-indent: 24px;"><span class="short">${data.com[i].barrage}</span></p>`
+                            }
+                            com_obj.append(content);
+                            number_obj.text(data.number);
+                        }
+                    } else {
+                        ale.html(message).addClass("alert-warning").show().delay(1500).fadeOut();
+                    }
+                }, error: function () {
+                    ale.html("出现未知异常，请联系Bruce.").addClass('alert-danger').show().delay(1500).fadeOut();
+                }
+            })
+        }
+
+        // setInterval(comment_load, 1000 * 6);
+
+        function comment_del(comment_id) {
+            if (window.confirm("请确认删除.")) {
+                let ale = $("#alert");
+                // 删除跳转页面
+                let page = "{{ page }}";
+                $.ajax({
+                    type: "post",
+                    url: `/comment/del/${comment_id}/?page=${page}`,
+                    async: false,
+                    success: function (result) {
+                        let code = result.code;
+                        let message = result.message;
+                        let data = result.data;
+                        if (code === 200) {
+                            ale.html("删除成功.").addClass("alert-success").show().delay(1500).fadeOut();
+                            setTimeout(function () {
+                                top.location.href = `/comment/look/{{ video.vid }}/?page=${data.page}`
+                            }, 1500);
+                        } else {
+                            ale.html(message).addClass("alert-warning").show().delay(1500).fadeOut();
+                        }
+                    }, error: function () {
+                        ale.html("出现未知异常，请联系Bruce.").addClass('alert-danger').show().delay(1500).fadeOut();
+                    }
+                })
+            } else {
+                return false;//取消
+            }
+        }
+    </script>
+{% endblock %}
